@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>사고 지도 생성</title>
+</head>
+<body>
+    <h1>사고 지도 생성</h1>
+    <ul>
+        <li><a href="{% url 'run_danger_map' %}">위험 지도 생성하기</a></li>
+        <li><a href="{% url 'run_cluster_map' %}">클러스터 지도 생성하기</a></li>
+    </ul>
+
+    <h1>생성된 지도 보기</h1>
+    <ul>
+        <li><a href="{% url 'danger_map' %}">위험 지도 보기</a></li>
+        <li><a href="{% url 'cluster_map' %}">클러스터 지도 보기</a></li>
+    </ul>
+</body>
+</html>
