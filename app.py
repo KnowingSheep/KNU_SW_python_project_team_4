@@ -3,7 +3,7 @@ from sqlalchemy import create_engine, text
 
 app = Flask(__name__)
 
-DB_URL = "postgresql+psycopg2://postgres:1356@localhost:5432/team4db"
+DB_URL = "postgresql+psycopg2://postgres:1356@25.50.71.151:5432/team4db"
 engine = create_engine(DB_URL)
 
 @app.route('/')
