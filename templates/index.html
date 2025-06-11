@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>교통사고 시각화</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    body {
+      display: flex;
+      height: 100vh;
+      margin: 0;
+      font-family: sans-serif;
+    }
+
+    /* 왼쪽 필터 프레임 */
+    #filter-panel {
+      width: 300px;
+      padding: 20px;
+      background-color: #f5f5f5;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+      overflow-y: auto;
+    }
+
+    /* 오른쪽 지도 프레임 */
+    #map-container {
+      flex: 1;
+      position: relative;
+    }
+
+    #map {
+      height: 100%;
+      width: 100%;
+    }
+
+    /* 지도 위에 떠 있는 연도 선택 select */
+    .map-controls {
+      position: absolute;
+      top: 10px;
+      left: 60px;
+      background-color: white;
+      padding: 8px 12px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      z-index: 1000;
+    }
+
+    /* 툴팁 텍스트를 투명 배경, 배경 없는 라벨처럼 보이게 */
+    .leaflet-tooltip {
+      text-align: center;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      color: black; /* 또는 원하는 색상 */
+      font-weight: bold;
+      font-size: 14px;
+      padding: 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="filter-panel">
+    <h3>사건 필터링</h3>
+    <!-- 이곳은 그대로 두고 향후 필터 추가 가능 -->
+  </div>
+
+  <div id="map-container">
+    <div class="map-controls">
+      <label for="yearSelect">년도 선택:</label>
+      <select id="yearSelect">
+      </select>
+    </div>
+
+    <div id="map"></div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    let map = L.map("map").setView([36.5, 127.5], 7);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
+
+    let layerGroup = L.layerGroup().addTo(map);
+
+    let currentYear = null;
+    let currentProvince = null;
+    let currentCity = null;
+
+    const ZOOM_SIDO = 10;
+    const ZOOM_SGG = 12;
+
+    const icons = {
+      차대차: L.icon({ iconUrl: "/static/icons/cvc.svg", iconSize: [32, 32] }),
+      차량단독: L.icon({ iconUrl: "/static/icons/cs.svg", iconSize: [32, 32] }),
+      차대사람: L.icon({ iconUrl: "/static/icons/cvm.svg", iconSize: [32, 32] })
+    };
+
+    async function loadYears() {
+      let res = await fetch('/api/years');
+      let years = await res.json();
+      let select = document.getElementById("yearSelect");
+      select.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join('');
+      select.addEventListener("change", () => {
+        currentYear = select.value;
+        currentProvince = null;
+        currentCity = null;
+        loadProvinces(select.value);
+        
+      });
+
+      loadProvinces(select.value);
+    }
+
+    async function loadProvinces(year) {
+      layerGroup.clearLayers();
+
+      let res = await fetch(`/api/provinces?year=${year}`);
+      let provinces = await res.json();
+
+      provinces.forEach(prov => {
+        let marker = L.marker([prov.lat, prov.lng]).addTo(layerGroup);
+        marker.bindPopup(prov.province);
+        marker.bindTooltip(prov.province, { permanent: true, direction: 'top', offset: [-15, 0], className: '' }).openTooltip();
+        marker.on("click", () => {
+            currentProvince = prov.province;
+            currentCity = null;
+            map.flyTo(marker.getLatLng(), ZOOM_SIDO);
+            loadCities(year, prov.province)
+        });
+      });
+    }
+
+    async function loadCities(year, province) {
+      layerGroup.clearLayers();
+      let res = await fetch(`/api/cities?year=${year}&province=${province}`);
+      let cities = await res.json();
+      cities.forEach(city => {
+        let marker = L.marker([city.lat, city.lng]).addTo(layerGroup);
+        marker.bindPopup(city.city);
+        marker.bindTooltip(city.city, { permanent: true, direction: 'top', offset: [-10, -10], className: '' }).openTooltip();
+        marker.on("click", () => {
+            currentCity = city.city;
+            map.flyTo(marker.getLatLng(), ZOOM_SGG);
+            loadAccidents(year, province, city.city)
+        });
+      });
+    }
+
+    async function loadAccidents(year, province, city) {
+      layerGroup.clearLayers();
+      let res = await fetch(`/api/accidents?year=${year}&province=${province}&city=${city}`);
+      let accidents = await res.json();
+      accidents.forEach(acc => {
+        let icon = icons[acc.type_major] || icons["차대차"];
+        let marker = L.marker([acc.lat, acc.lng], { icon }).addTo(layerGroup);
+        marker.bindPopup(`<b>${acc.date}</b><br/>${acc.desc}`);
+      });
+    }
+
+    loadYears();
+
+    map.on("zoomend", () => {
+    const zoom = map.getZoom();
+
+    if (zoom < ZOOM_SIDO) {
+        // 줌이 너무 작으면 전체 시도 마커
+        if (currentProvince !== null || currentCity !== null) {
+            currentProvince = null;
+            currentCity = null;
+            loadProvinces(currentYear);
+        }
+    } else if (zoom < ZOOM_SGG) {
+        // 시도 클릭 이후 확대된 상태에서 유지
+        if (currentCity !== null) {
+            currentCity = null;
+            loadCities(currentYear, currentProvince);
+        }
+    } else {
+        // 사고 마커를 유지할 줌레벨 → 아무것도 안 함
+    }
+    });
+
+  </script>
+</body>
+</html>
