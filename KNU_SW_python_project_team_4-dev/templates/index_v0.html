@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>교통사고 시각화</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    body {
+      display: flex;
+      height: 100vh;
+      margin: 0;
+      font-family: sans-serif;
+    }
+
+    /* 왼쪽 필터 프레임 */
+    #filter-panel {
+      width: 300px;
+      padding: 20px;
+      background-color: #f5f5f5;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+      overflow-y: auto;
+      position: relative;
+      transition: width 0.3s ease;
+      z-index: 1001;
+    }
+
+    #filter-panel.collapsed {
+      width: 0;
+      padding: 0;
+      overflow: hidden;
+      transition: width 0.3s ease;
+    }
+
+    #filter-panel.collapsed .filter-content {
+      display: none;
+    }
+
+    #toggle-panel {
+      position: absolute;
+      top: 100px;
+      left: 0; /* 패널 바깥으로 튀어나오게 */
+      z-index: 10;
+      width: 32px;
+      height: 32px;
+      background: white;
+      border: 1px solid #999;
+      border-radius: 0 5px 5px 0;
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 32px;
+      text-align: center;
+      padding: 0;
+      z-index: 2000;
+    }
+
+    /* 오른쪽 지도 프레임 */
+    #map-container {
+      flex: 1;
+      position: relative;
+    }
+
+    #map {
+      height: 100%;
+      width: 100%;
+    }
+
+    /* 지도 위에 떠 있는 연도 선택 select */
+    .map-controls {
+      position: absolute;
+      top: 10px;
+      left: 60px;
+      background-color: white;
+      padding: 8px 12px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      z-index: 1000;
+    }
+
+    /* 툴팁 텍스트를 투명 배경, 배경 없는 라벨처럼 보이게 */
+    .leaflet-tooltip {
+      text-align: center;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      color: black; /* 또는 원하는 색상 */
+      font-weight: bold;
+      font-size: 14px;
+      padding: 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="filter-panel">
+    <div class="filter-content">
+      <h3>사건 필터링</h3>
+      <!-- 이곳은 그대로 두고 향후 필터 추가 가능 -->
+     </div>
+  </div>
+
+  <div id="map-container">
+    <button id="toggle-panel" style="float: right;">◀</button>
+    <div class="map-controls">
+      <label for="yearSelect">년도 선택:</label>
+      <select id="yearSelect">
+      </select>
+    </div>
+
+    <div id="map"></div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    let map = L.map("map", {
+        minZoom: 7,
+        maxZoom: 20,
+        maxBounds: [
+        [32.5, 124.0],  // 남서쪽 (최소 위도, 최소 경도)
+        [39.5, 132.0]   // 북동쪽 (최대 위도, 최대 경도)
+        ],
+        maxBoundsViscosity: 1.0  // 경계 바깥으로 못 나가게 (0은 약하게, 1은 완전히 제한)
+    }).setView([36.5, 127.5], 7);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { minZoom: 5, maxZoom: 20 }).addTo(map);
+
+    let layerGroup = L.layerGroup().addTo(map);
+
+    let currentYear = 2012;
+    let currentProvince = null;
+    let currentCity = null;
+
+    let mouseLatLng = map.getCenter();
+
+    const ZOOM_SIDO = 9;
+    const ZOOM_SGG = 11;
+
+    const icons = {
+      차대차: L.icon({ iconUrl: "/static/icons/cvc.svg", iconSize: [32, 32] }),
+      차량단독: L.icon({ iconUrl: "/static/icons/cs.svg", iconSize: [32, 32] }),
+      차대사람: L.icon({ iconUrl: "/static/icons/cvm.svg", iconSize: [32, 32] })
+    };
+
+    async function loadYears() {
+      let res = await fetch('/api/years');
+      let years = await res.json();
+      let select = document.getElementById("yearSelect");
+      select.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join('');
+      select.addEventListener("change", () => {
+        currentYear = select.value;
+        if (currentProvince != null && currentCity != null) {
+          loadAccidents(currentYear, currentProvince, currentCity);
+        }
+        else if (currentProvince != null && currentCity == null) {
+          loadCities(currentYear, currentProvince);
+        }
+        else {
+          loadProvinces(currentYear);
+        }
+        
+      });
+
+      loadProvinces(select.value);
+    }
+
+    async function loadProvinces(year) {
+      layerGroup.clearLayers();
+
+      let res = await fetch(`/api/provinces?year=${year}`);
+      let provinces = await res.json();
+
+      provinces.forEach(prov => {
+        let marker = L.marker([prov.lat, prov.lng]).addTo(layerGroup);
+        marker.bindPopup(prov.province);
+        marker.bindTooltip(prov.province, { permanent: true, direction: 'top', offset: [-15, 0], className: '' }).openTooltip();
+        marker.on("click", () => {
+            currentProvince = prov.province;
+            currentCity = null;
+            map.flyTo(marker.getLatLng(), ZOOM_SIDO);
+            loadCities(year, prov.province)
+        });
+      });
+    }
+
+    async function loadCities(year, province) {
+      layerGroup.clearLayers();
+      let res = await fetch(`/api/cities?year=${year}&province=${province}`);
+      let cities = await res.json();
+      cities.forEach(city => {
+        let marker = L.marker([city.lat, city.lng]).addTo(layerGroup);
+        marker.bindPopup(city.city);
+        marker.bindTooltip(city.city, { permanent: true, direction: 'top', offset: [-10, -10], className: '' }).openTooltip();
+        marker.on("click", () => {
+            currentCity = city.city;
+            map.flyTo(marker.getLatLng(), ZOOM_SGG);
+            loadAccidents(year, province, city.city)
+        });
+      });
+    }
+
+    async function loadAccidents(year, province, city) {
+      layerGroup.clearLayers();
+      let res = await fetch(`/api/accidents?year=${year}&province=${province}&city=${city}`);
+      let accidents = await res.json();
+      accidents.forEach(acc => {
+        let icon = icons[acc.type_major] || icons["차대차"];
+        let marker = L.marker([acc.lat, acc.lng], { icon }).addTo(layerGroup);
+        marker.bindPopup(`<b>${acc.date}</b><br/>${acc.desc}`);
+      });
+    }
+
+    loadYears();
+
+map.on("mousemove", (e) => {
+  mouseLatLng = e.latlng;
+});
+
+map.on("zoomend", () => {
+  const zoom = map.getZoom();
+
+  if (zoom < ZOOM_SIDO) {
+    currentProvince = null;
+    currentCity = null;
+    loadProvinces(currentYear);
+  } else if (zoom < ZOOM_SGG && zoom >= ZOOM_SIDO) {
+    currentCity = null;
+    if (currentProvince != null) {
+      loadCities(currentYear, currentProvince);
+    } else {
+      // 마우스 커서 근처 마커에서 province 추정
+      let nearest = null;
+      let minDist = Infinity;
+
+      layerGroup.eachLayer(layer => {
+        const dist = mouseLatLng.distanceTo(layer.getLatLng());
+        if (dist < minDist) {
+          minDist = dist;
+          nearest = layer;
+        }
+      });
+
+      if (nearest) {
+        const prov = nearest.getPopup()?.getContent();
+        if (prov) {
+          currentProvince = prov;
+          loadCities(currentYear, currentProvince);
+          map.flyTo(nearest.getLatLng(), ZOOM_SIDO);
+        }
+      }
+    }
+  } else if (zoom >= ZOOM_SGG) {
+    if (currentProvince != null && currentCity != null) {
+      loadAccidents(currentYear, currentProvince, currentCity);
+    } else if (currentProvince != null) {
+      let nearest = null;
+      let minDist = Infinity;
+
+      layerGroup.eachLayer(layer => {
+        const dist = mouseLatLng.distanceTo(layer.getLatLng());
+        if (dist < minDist) {
+          minDist = dist;
+          nearest = layer;
+        }
+      });
+
+      if (nearest) {
+        const city = nearest.getPopup()?.getContent();
+        if (city) {
+          currentCity = city;
+          loadAccidents(currentYear, currentProvince, currentCity);
+          map.flyTo(nearest.getLatLng(), ZOOM_SGG);
+        }
+      }
+    }
+  }
+});
+
+//필터 레이아웃 토글
+  const filterPanel = document.getElementById("filter-panel");
+  const toggleButton = document.getElementById("toggle-panel");
+
+  toggleButton.addEventListener("click", () => {
+    filterPanel.classList.toggle("collapsed");
+
+    if (filterPanel.classList.contains("collapsed")) {
+      toggleButton.textContent = "▶";
+    } else {
+      toggleButton.textContent = "◀";
+    }
+
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 300);
+  });
+
+  </script>
+</body>
+</html>

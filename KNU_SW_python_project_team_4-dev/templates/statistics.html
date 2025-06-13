@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>교통사고 통계</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Noto Sans KR', sans-serif;
+      background-color: #f2f4f8;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 60px;
+      font-size: 2.2em;
+      color: #2f3542;
+    }
+
+    .filter-box {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 40px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .filter-box label {
+      font-weight: bold;
+    }
+
+    .filter-box select, .filter-box button {
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+
+    .chart-box {
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      padding: 30px;
+      margin-bottom: 40px;
+    }
+
+    .chart-box h2 {
+      margin-bottom: 20px;
+      font-size: 1.3em;
+      color: #3742fa;
+    }
+
+    canvas {
+      width: 100% !important;
+      height: 400px !important;
+    }
+
+    @media (max-width: 768px) {
+      canvas {
+        height: 300px !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📊 교통사고 통계 분석</h1>
+
+    <div class="filter-box">
+      <label for="yearSelect">연도 선택:</label>
+      <select id="yearSelect">
+        <option value="">전체</option>
+        <option value="2020">2020</option>
+        <option value="2021">2021</option>
+        <option value="2022">2022</option>
+        <option value="2023">2023</option>
+      </select>
+
+      <label for="citySelect">지역 선택:</label>
+      <select id="citySelect">
+        <option value="">전체</option>
+        <option value="서울">서울</option>
+        <option value="부산">부산</option>
+        <option value="대구">대구</option>
+      </select>
+
+      <button onclick="loadStatistics()">검색</button>
+    </div>
+
+    <div class="chart-box">
+      <h2>요일별 사고 건수</h2>
+      <canvas id="weekdayChart"></canvas>
+    </div>
+
+    <div class="chart-box">
+      <h2>시간대별 사고 건수</h2>
+      <canvas id="hourChart"></canvas>
+    </div>
+
+    <div class="chart-box">
+      <h2>지역별 사고 TOP 10</h2>
+      <canvas id="cityChart"></canvas>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/statistics.js') }}"></script>
+</body>
+</html>
