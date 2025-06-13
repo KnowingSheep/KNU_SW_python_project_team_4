@@ -4,371 +4,190 @@
   <meta charset="UTF-8" />
   <title>교통사고 시각화</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <style>
-    body {
-      display: flex;
-      height: 100vh;
-      margin: 0;
-      font-family: sans-serif;
-    }
-
-    /* 왼쪽 필터 프레임 */
-    #filter-panel {
-      width: 300px;
-      padding: 20px;
-      background-color: #f5f5f5;
-      box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-      overflow-y: auto;
-      position: relative;
-      transition: width 0.3s ease;
-      z-index: 1001;
-    }
-
-    #filter-panel.collapsed {
-      width: 0;
-      padding: 0;
-      overflow: hidden;
-      transition: width 0.3s ease;
-    }
-
-    #filter-panel.collapsed .filter-content {
-      display: none;
-    }
-
-    #toggle-panel {
-      position: absolute;
-      top: 100px;
-      left: 0; /* 패널 바깥으로 튀어나오게 */
-      z-index: 10;
-      width: 32px;
-      height: 32px;
-      background: white;
-      border: 1px solid #999;
-      border-radius: 0 5px 5px 0;
-      cursor: pointer;
-      font-size: 16px;
-      line-height: 32px;
-      text-align: center;
-      padding: 0;
-      z-index: 2000;
-    }
-
-    #loading-indicator {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      padding: 6px 12px;
-      background: rgba(255,255,255,0.9);
-      border-radius: 6px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-      font-weight: bold;
-      display: none;
-      z-index: 1100;
-    }
-
-    /* 오른쪽 지도 프레임 */
-    #map-container {
-      flex: 1;
-      position: relative;
-    }
-
-    #map {
-      height: 100%;
-      width: 100%;
-    }
-
-    /* 지도 위에 떠 있는 연도 선택 select */
-    .map-controls {
-      position: absolute;
-      top: 10px;
-      left: 60px;
-      background-color: white;
-      padding: 8px 12px;
-      border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-      z-index: 1000;
-    }
-
-    /* 툴팁 텍스트를 투명 배경, 배경 없는 라벨처럼 보이게 */
-    .leaflet-tooltip {
-      text-align: center;
-      background: transparent;
-      border: none;
-      box-shadow: none;
-      color: black; /* 또는 원하는 색상 */
-      font-weight: bold;
-      font-size: 14px;
-      padding: 0;
-    }
-  </style>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/map.css') }}">
 </head>
 <body>
   <div id="filter-panel">
     <div class="filter-content">
-      <h3>사건 필터링</h3>
-      <!-- 이곳은 그대로 두고 향후 필터 추가 가능 -->
-     </div>
+      <div class="filter-header">
+        <h2>🚗 교통사고 분석</h2>
+        <p>조건을 선택하여 데이터를 필터링하세요</p>
+      </div>
+
+      <!-- 시간 필터 -->
+      <div class="filter-section">
+        <h3>📅 시간 조건</h3>
+        <div class="filter-group">
+          <label class="filter-label">주야 구분</label>
+          <div class="checkbox-group">
+            <div class="checkbox-item">
+              <input type="checkbox" id="day" checked>
+              <label for="day">주간</label>
+            </div>
+            <div class="checkbox-item">
+              <input type="checkbox" id="night" checked>
+              <label for="night">야간</label>
+            </div>
+          </div>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">요일</label>
+          <select class="filter-select" id="dayOfWeek">
+            <option value="">전체</option>
+            <option value="월">월요일</option>
+            <option value="화">화요일</option>
+            <option value="수">수요일</option>
+            <option value="목">목요일</option>
+            <option value="금">금요일</option>
+            <option value="토">토요일</option>
+            <option value="일">일요일</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 사고 유형 필터 -->
+      <div class="filter-section">
+        <h3>🚧 사고 유형</h3>
+        <div class="filter-group">
+          <label class="filter-label">대분류</label>
+          <div class="checkbox-group">
+            <div class="checkbox-item">
+              <input type="checkbox" id="car-car" checked>
+              <label for="car-car">차대차</label>
+            </div>
+            <div class="checkbox-item">
+              <input type="checkbox" id="car-single" checked>
+              <label for="car-single">차량단독</label>
+            </div>
+            <div class="checkbox-item">
+              <input type="checkbox" id="car-person" checked>
+              <label for="car-person">차대사람</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 심각도 필터 -->
+      <div class="filter-section">
+        <h3>⚠️ 사고 심각도</h3>
+        <div class="severity-grid">
+          <div class="severity-item active" data-type="death">
+            <span class="severity-icon">💀</span>
+            <span class="severity-label">사망사고</span>
+          </div>
+          <div class="severity-item active" data-type="serious">
+            <span class="severity-icon">🚑</span>
+            <span class="severity-label">중상사고</span>
+          </div>
+          <div class="severity-item active" data-type="minor">
+            <span class="severity-icon">🏥</span>
+            <span class="severity-label">경상사고</span>
+          </div>
+          <div class="severity-item active" data-type="injury">
+            <span class="severity-icon">🩹</span>
+            <span class="severity-label">부상신고</span>
+          </div>
+        </div>
+        
+        <div class="filter-group" style="margin-top: 16px;">
+          <label class="filter-label">사상자 수 범위</label>
+          <div class="range-container">
+            <input type="number" class="range-input" placeholder="최소" min="0" id="minCasualties">
+            <span>~</span>
+            <input type="number" class="range-input" placeholder="최대" min="0" id="maxCasualties">
+          </div>
+        </div>
+      </div>
+
+      <!-- 도로 조건 필터 -->
+      <div class="filter-section">
+        <h3>🛣️ 도로 조건</h3>
+        <div class="filter-group">
+          <label class="filter-label">도로 형태</label>
+          <select class="filter-select" id="roadType">
+            <option value="">전체</option>
+            <option value="단일로">단일로</option>
+            <option value="교차로">교차로</option>
+            <option value="고속도로">고속도로</option>
+            <option value="터널">터널</option>
+            <option value="교량">교량</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 당사자 필터 -->
+      <div class="filter-section">
+        <h3>👥 당사자 유형</h3>
+        <div class="filter-group">
+          <label class="filter-label">가해자 차량</label>
+          <select class="filter-select" id="perpetratorType">
+            <option value="">전체</option>
+            <option value="승용차">승용차</option>
+            <option value="화물차">화물차</option>
+            <option value="승합차">승합차</option>
+            <option value="이륜차">이륜차</option>
+            <option value="자전거">자전거</option>
+            <option value="보행자">보행자</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">피해자 유형</label>
+          <select class="filter-select" id="victimType">
+            <option value="">전체</option>
+            <option value="승용차">승용차</option>
+            <option value="화물차">화물차</option>
+            <option value="승합차">승합차</option>
+            <option value="이륜차">이륜차</option>
+            <option value="자전거">자전거</option>
+            <option value="보행자">보행자</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 법규위반 필터 -->
+      <div class="filter-section">
+        <h3>⚖️ 법규 위반</h3>
+        <div class="filter-group">
+          <label class="filter-label">위반 유형</label>
+          <select class="filter-select" id="violationType">
+            <option value="">전체</option>
+            <option value="안전운전 의무 불이행">안전운전 의무 불이행</option>
+            <option value="신호위반">신호위반</option>
+            <option value="중앙선침범">중앙선침범</option>
+            <option value="속도위반">속도위반</option>
+            <option value="기타">기타</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 액션 버튼 -->
+      <div class="filter-actions">
+        <button class="btn btn-primary" id="applyFilters">필터 적용</button>
+        <button class="btn btn-secondary" id="resetFilters">초기화</button>
+      </div>
+
+      <!-- 통계 요약 -->
+      <div class="stats-summary">
+        <span class="stats-number" id="filteredCount">1,234</span>
+        <span class="stats-label">필터링된 사고 건수</span>
+      </div>
+    </div>
   </div>
 
   <div id="map-container">
-    <button id="toggle-panel" style="float: right;">◀</button>
+    <button id="toggle-panel">◀</button>
     <div id="loading-indicator">
-      Loading..
+      데이터 로딩 중...
     </div>
     <div class="map-controls">
-      <label for="yearSelect">년도 선택:</label>
+      <label for="yearSelect">📅 년도 선택:</label>
       <select id="yearSelect">
       </select>
     </div>
-
     <div id="map"></div>
   </div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script>
-    let map = L.map("map", {
-        minZoom: 7,
-        maxZoom: 20,
-        maxBounds: [
-        [32.5, 124.0],  // 남서쪽 (최소 위도, 최소 경도)
-        [39.5, 132.0]   // 북동쪽 (최대 위도, 최대 경도)
-        ],
-        maxBoundsViscosity: 1.0  // 경계 바깥으로 못 나가게 (0은 약하게, 1은 완전히 제한)
-    }).setView([36.5, 127.5], 7);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { minZoom: 5, maxZoom: 20 }).addTo(map);
-
-    const ZOOM_SIDO = 9;
-    const ZOOM_SGG = 11;
-
-    const icons = {
-      차대차: L.icon({ iconUrl: "/static/icons/cvc.svg", iconSize: [32, 32] }),
-      차량단독: L.icon({ iconUrl: "/static/icons/cs.svg", iconSize: [32, 32] }),
-      차대사람: L.icon({ iconUrl: "/static/icons/cvm.svg", iconSize: [32, 32] })
-    };
-
-    let layerGroup = L.layerGroup().addTo(map);
-
-    let mouseLatLng = map.getCenter();
-
-    let currentYear = 2012;
-    let currentProvince = null;
-    let currentCity = null;
-
-    const provinceCache = new Map();
-    const cityCache = new Map();
-    const accidentCache = new Map();
-
-    // debounce 함수 정의
-    function debounce(fn, delay) {
-      let timeout;
-      return function(...args) {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => fn(...args), delay);
-      };
-    }
-
-    async function loadYears() {
-      let res = await fetch('/api/years');
-      let years = await res.json();
-      let select = document.getElementById("yearSelect");
-      select.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join('');
-      select.addEventListener("change", () => {
-        currentYear = select.value;
-        if (currentProvince != null && currentCity != null) {
-          loadAccidents(currentYear, currentProvince, currentCity);
-        }
-        else if (currentProvince != null && currentCity == null) {
-          loadCities(currentYear, currentProvince);
-        }
-        else {
-          loadProvinces(currentYear);
-        }
-        
-      });
-
-      loadProvinces(select.value);
-    }
-
-  async function loadProvinces(year) {
-  const key = `${year}`;
-  if (provinceCache.has(key)) {
-    renderProvinces(provinceCache.get(key));
-    return;
-  }
-
-  let provinces = await fetchWithLoading(`/api/provinces?year=${year}`);
-  provinceCache.set(key, provinces);
-  renderProvinces(provinces);
-}
-
-function renderProvinces(provinces) {
-  layerGroup.clearLayers();
-  provinces.forEach(prov => {
-    let marker = L.marker([prov.lat, prov.lng]).addTo(layerGroup);
-    marker.bindPopup(prov.province);
-    marker.bindTooltip(prov.province, { permanent: true, direction: 'top', offset: [-15, 0] }).openTooltip();
-    marker.on("click", () => {
-      currentProvince = prov.province;
-      currentCity = null;
-      map.flyTo(marker.getLatLng(), ZOOM_SIDO);
-      loadCities(currentYear, prov.province);
-    });
-  });
-}
-
-
-  async function loadCities(year, province) {
-  const key = `${year}-${province}`;
-  if (cityCache.has(key)) {
-    renderCities(cityCache.get(key));
-    return;
-  }
-
-  let cities = await fetchWithLoading(`/api/cities?year=${year}&province=${province}`);
-  cityCache.set(key, cities);
-  renderCities(cities);
-}
-
-function renderCities(cities) {
-  layerGroup.clearLayers();
-  cities.forEach(city => {
-    let marker = L.marker([city.lat, city.lng]).addTo(layerGroup);
-    marker.bindPopup(city.city);
-    marker.bindTooltip(city.city, { permanent: true, direction: 'top', offset: [-10, -10] }).openTooltip();
-    marker.on("click", () => {
-      currentCity = city.city;
-      map.flyTo(marker.getLatLng(), ZOOM_SGG);
-      loadAccidents(currentYear, currentProvince, currentCity);
-    });
-  });
-}
-
-
-  async function loadAccidents(year, province, city) {
-  const key = `${year}-${province}-${city}`;
-  if (accidentCache.has(key)) {
-    renderAccidents(accidentCache.get(key));
-    return;
-  }
-
-  let accidents = await fetchWithLoading(`/api/accidents?year=${year}&province=${province}&city=${city}`);
-  accidentCache.set(key, accidents);
-  renderAccidents(accidents);
-}
-
-function renderAccidents(accidents) {
-  layerGroup.clearLayers();
-  accidents.forEach(acc => {
-    let icon = icons[acc.type_major] || icons["차대차"];
-    let marker = L.marker([acc.lat, acc.lng], { icon }).addTo(layerGroup);
-    marker.bindPopup(`<b>${acc.date}</b><br/>${acc.desc}`);
-  });
-}
-
-
-loadYears();
-
-//지도 내의 마우스 커서 좌표 반환
-map.on("mousemove", (e) => {
-  mouseLatLng = e.latlng;
-});
-
-//지도 줌 인 & 줌 아웃 시
-map.on("zoomend", debounce(() => {
-  const zoom = map.getZoom();
-
-  if (zoom < ZOOM_SIDO) {
-    currentProvince = null;
-    currentCity = null;
-    loadProvinces(currentYear);
-  } else if (zoom < ZOOM_SGG && zoom >= ZOOM_SIDO) {
-    currentCity = null;
-    if (currentProvince != null) {
-      loadCities(currentYear, currentProvince);
-    } else {
-      let nearest = findNearestMarker();
-      if (nearest) {
-        const prov = nearest.getPopup()?.getContent();
-        if (prov) {
-          currentProvince = prov;
-          loadCities(currentYear, currentProvince);
-          map.flyTo(nearest.getLatLng(), ZOOM_SIDO);
-        }
-      }
-    }
-  } else if (zoom >= ZOOM_SGG) {
-    if (currentProvince != null && currentCity != null) {
-      loadAccidents(currentYear, currentProvince, currentCity);
-    } else if (currentProvince != null) {
-      let nearest = findNearestMarker();
-      if (nearest) {
-        const city = nearest.getPopup()?.getContent();
-        if (city) {
-          currentCity = city;
-          loadAccidents(currentYear, currentProvince, currentCity);
-          map.flyTo(nearest.getLatLng(), ZOOM_SGG);
-        }
-      }
-    }
-  }
-}, 300));
-
-function findNearestMarker() {
-  let nearest = null;
-  let minDist = Infinity;
-  layerGroup.eachLayer(layer => {
-    const dist = mouseLatLng.distanceTo(layer.getLatLng());
-    if (dist < minDist) {
-      minDist = dist;
-      nearest = layer;
-    }
-  });
-  return nearest;
-}
-
-
-//필터 레이아웃 토글
-  const filterPanel = document.getElementById("filter-panel");
-  const toggleButton = document.getElementById("toggle-panel");
-
-  toggleButton.addEventListener("click", () => {
-    filterPanel.classList.toggle("collapsed");
-
-    if (filterPanel.classList.contains("collapsed")) {
-      toggleButton.textContent = "▶";
-    } else {
-      toggleButton.textContent = "◀";
-    }
-
-    setTimeout(() => {
-      map.invalidateSize();
-    }, 300);
-  });
-
-//로딩 인디케이터
-const loadingIndicator = document.getElementById("loading-indicator");
-
-function showLoading() {
-  loadingIndicator.style.display = "block";
-}
-
-function hideLoading() {
-  loadingIndicator.style.display = "none";
-}
-
-// fetch 래핑 함수: 로딩 자동 제어 + 에러 처리 포함
-async function fetchWithLoading(url) {
-  try {
-    showLoading();
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-    const data = await res.json();
-    return data;
-  } finally {
-    hideLoading();
-  }
-}
-
-  </script>
+  <script src="{{ url_for('static', filename='js/map.js') }}"></script>
 </body>
 </html>
