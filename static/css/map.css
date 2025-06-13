@@ -207,16 +207,17 @@
         display: flex;
         gap: 8px;
         align-items: center;
+        flex-wrap: nowrap;
     }
 
-    .range-input {
-        flex: 1;
-        padding: 8px 10px;
-        border: 2px solid #e1e8ed;
-        border-radius: 6px;
-        font-size: 13px;
-        text-align: center;
-    }
+.range-input {
+    width: 80px; /* or 60px for even smaller */
+    padding: 6px 8px;
+    border: 2px solid #e1e8ed;
+    border-radius: 6px;
+    font-size: 13px;
+    text-align: center;
+}
 
     .filter-actions {
         display: grid;
