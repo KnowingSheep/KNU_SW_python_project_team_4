@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <title>교통사고 지도</title>
+
+    <!-- Leaflet 기본 -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+    <!-- ★ markercluster CSS 추가 -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
+
+    <style>
+        #map { height: 600px; width: 100%; }
+    </style>
+</head>
+<body>
+    <h2>2023년 교통사고 지도 (지역구-단위 클러스터)</h2>
+    <div id="map"></div>
+
+    <!-- Leaflet 기본 -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <!-- ★ markercluster JS 추가 -->
+    <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+
+<!-- leaflet + markercluster css/js는 생략. 기존 코드와 동일하게 포함하면 됩니다 -->
+
+<script>
+    const map = L.map("map").setView([36.5, 127.5], 7);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+    }).addTo(map);
+
+    const iconMap = {
+        "차대차": L.icon({ iconUrl: "/static/icons/cvc.svg", iconSize: [32, 32], iconAnchor: [16, 16] }),
+        "차량단독": L.icon({ iconUrl: "/static/icons/cs.svg", iconSize: [32, 32], iconAnchor: [16, 16] }),
+        "차대사람": L.icon({ iconUrl: "/static/icons/cvm.svg", iconSize: [32, 32], iconAnchor: [16, 16] })
+    };
+
+    let allAccidents = [];             // 전체 사고 데이터
+    let currentClusters = [];          // 현재 클러스터 그룹 (제거용)
+
+    // 사고 데이터를 그룹핑하여 클러스터 표시
+    function clusterByLevel() {
+        const zoom = map.getZoom();
+        const keyFn = (zoom <= 8)
+            ? acc => acc.province
+            : acc => acc.province + ' ' + acc.city;
+
+        // 그룹화
+        const groupMap = {};
+        allAccidents.forEach(acc => {
+            const key = keyFn(acc);
+            (groupMap[key] ||= []).push(acc);
+        });
+
+        // 기존 클러스터 제거
+        currentClusters.forEach(cg => map.removeLayer(cg));
+        currentClusters = [];
+
+        // 그룹별로 마커 생성 및 클러스터링
+        for (const group of Object.values(groupMap)) {
+            const clusterGroup = L.markerClusterGroup();
+            group.forEach(acc => {
+                const icon = iconMap[acc.type_major] || iconMap["차량단독"];
+                const marker = L.marker([acc.lat, acc.lng], { icon });
+                marker.bindPopup(`
+                    <b>사고일:</b> ${acc.date}<br/>
+                    <b>설명:</b> ${acc.desc}<br/>
+                    <b>유형:</b> ${acc.type_major}<br/>
+                    <b>지역:</b> ${acc.province} ${acc.city}
+                `);
+                clusterGroup.addLayer(marker);
+            });
+            clusterGroup.addTo(map);
+            currentClusters.push(clusterGroup);
+        }
+    }
+
+    // 줌 변경 시 클러스터 갱신
+    map.on('zoomend', () => {
+        clusterByLevel();
+    });
+
+    // 사고 데이터 로딩
+    fetch('/api/accidents')
+        .then(res => res.json())
+        .then(data => {
+            allAccidents = data;
+            clusterByLevel();     // 최초 클러스터링
+        })
+        .catch(err => console.error("데이터 로딩 실패:", err));
+</script>
+
+</body>
+</html>

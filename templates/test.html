@@ -1,0 +1,146 @@
+// 1. 캐시 객체들
+const provinceCache = new Map();
+const cityCache = new Map();
+const accidentCache = new Map();
+
+// 2. debounce 함수 정의
+function debounce(fn, delay) {
+  let timeout;
+  return function(...args) {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => fn(...args), delay);
+  };
+}
+
+// 3. load 함수들에 캐싱 적용
+
+async function loadProvinces(year) {
+  const key = `${year}`;
+  if (provinceCache.has(key)) {
+    renderProvinces(provinceCache.get(key));
+    return;
+  }
+
+  let res = await fetch(`/api/provinces?year=${year}`);
+  let provinces = await res.json();
+  provinceCache.set(key, provinces);
+  renderProvinces(provinces);
+}
+
+function renderProvinces(provinces) {
+  layerGroup.clearLayers();
+  provinces.forEach(prov => {
+    let marker = L.marker([prov.lat, prov.lng]).addTo(layerGroup);
+    marker.bindPopup(prov.province);
+    marker.bindTooltip(prov.province, { permanent: true, direction: 'top', offset: [-15, 0] }).openTooltip();
+    marker.on("click", () => {
+      currentProvince = prov.province;
+      currentCity = null;
+      map.flyTo(marker.getLatLng(), ZOOM_SIDO);
+      loadCities(currentYear, prov.province);
+    });
+  });
+}
+
+async function loadCities(year, province) {
+  const key = `${year}-${province}`;
+  if (cityCache.has(key)) {
+    renderCities(cityCache.get(key));
+    return;
+  }
+
+  let res = await fetch(`/api/cities?year=${year}&province=${province}`);
+  let cities = await res.json();
+  cityCache.set(key, cities);
+  renderCities(cities);
+}
+
+function renderCities(cities) {
+  layerGroup.clearLayers();
+  cities.forEach(city => {
+    let marker = L.marker([city.lat, city.lng]).addTo(layerGroup);
+    marker.bindPopup(city.city);
+    marker.bindTooltip(city.city, { permanent: true, direction: 'top', offset: [-10, -10] }).openTooltip();
+    marker.on("click", () => {
+      currentCity = city.city;
+      map.flyTo(marker.getLatLng(), ZOOM_SGG);
+      loadAccidents(currentYear, currentProvince, currentCity);
+    });
+  });
+}
+
+async function loadAccidents(year, province, city) {
+  const key = `${year}-${province}-${city}`;
+  if (accidentCache.has(key)) {
+    renderAccidents(accidentCache.get(key));
+    return;
+  }
+
+  let res = await fetch(`/api/accidents?year=${year}&province=${province}&city=${city}`);
+  let accidents = await res.json();
+  accidentCache.set(key, accidents);
+  renderAccidents(accidents);
+}
+
+function renderAccidents(accidents) {
+  layerGroup.clearLayers();
+  accidents.forEach(acc => {
+    let icon = icons[acc.type_major] || icons["차대차"];
+    let marker = L.marker([acc.lat, acc.lng], { icon }).addTo(layerGroup);
+    marker.bindPopup(`<b>${acc.date}</b><br/>${acc.desc}`);
+  });
+}
+
+// 4. 줌 이벤트 최적화 (debounced)
+map.on("zoomend", debounce(() => {
+  const zoom = map.getZoom();
+
+  if (zoom < ZOOM_SIDO) {
+    currentProvince = null;
+    currentCity = null;
+    loadProvinces(currentYear);
+  } else if (zoom < ZOOM_SGG && zoom >= ZOOM_SIDO) {
+    currentCity = null;
+    if (currentProvince != null) {
+      loadCities(currentYear, currentProvince);
+    } else {
+      let nearest = findNearestMarker();
+      if (nearest) {
+        const prov = nearest.getPopup()?.getContent();
+        if (prov) {
+          currentProvince = prov;
+          loadCities(currentYear, currentProvince);
+          map.flyTo(nearest.getLatLng(), ZOOM_SIDO);
+        }
+      }
+    }
+  } else if (zoom >= ZOOM_SGG) {
+    if (currentProvince != null && currentCity != null) {
+      loadAccidents(currentYear, currentProvince, currentCity);
+    } else if (currentProvince != null) {
+      let nearest = findNearestMarker();
+      if (nearest) {
+        const city = nearest.getPopup()?.getContent();
+        if (city) {
+          currentCity = city;
+          loadAccidents(currentYear, currentProvince, currentCity);
+          map.flyTo(nearest.getLatLng(), ZOOM_SGG);
+        }
+      }
+    }
+  }
+}, 300));
+
+// 5. 마커 근접 탐색 함수
+function findNearestMarker() {
+  let nearest = null;
+  let minDist = Infinity;
+  layerGroup.eachLayer(layer => {
+    const dist = mouseLatLng.distanceTo(layer.getLatLng());
+    if (dist < minDist) {
+      minDist = dist;
+      nearest = layer;
+    }
+  });
+  return nearest;
+}
