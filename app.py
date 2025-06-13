@@ -1,5 +1,14 @@
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, abort, render_template, jsonify, request
 from sqlalchemy import create_engine, text
+
+def parse_year():
+    year = request.args.get('year')
+    if not year:
+        abort(400, description="'year' parameter required")
+    try:
+        return int(year)
+    except ValueError:
+        abort(400, description="'year' must be an integer")
 
 app = Flask(__name__)
 
@@ -26,13 +35,17 @@ def api_provinces():
     year = request.args.get('year')
     with engine.connect() as conn:
         result = conn.execute(text("""
-            SELECT province, ST_X(ST_Centroid(ST_Collect(geom))) AS lng, ST_Y(ST_Centroid(ST_Collect(geom))) AS lat
-            FROM accidents
-            WHERE EXTRACT(YEAR FROM datetime) = :year
-            GROUP BY province
+            SELECT p.province, p.lng, p.lat
+            FROM provinces p
+            WHERE EXISTS (
+                SELECT 1 FROM accidents a
+                WHERE EXTRACT(YEAR FROM a.datetime) = :year
+                AND a.province = p.province
+            )
         """), {"year": year})
         rows = [dict(row._mapping) for row in result]
     return jsonify(rows)
+
 
 @app.route('/api/cities')
 def api_cities():
@@ -40,23 +53,31 @@ def api_cities():
     province = request.args.get('province')
     with engine.connect() as conn:
         result = conn.execute(text("""
-            SELECT city, ST_X(ST_Centroid(ST_Collect(geom))) AS lng, ST_Y(ST_Centroid(ST_Collect(geom))) AS lat
-            FROM accidents
-            WHERE EXTRACT(YEAR FROM datetime) = :year AND province = :province
-            GROUP BY city
+            SELECT d.city, d.lng, d.lat
+            FROM districts d
+            WHERE d.province = :province AND EXISTS (
+                SELECT 1 FROM accidents a
+                WHERE EXTRACT(YEAR FROM a.datetime) = :year
+                  AND a.province = d.province
+                  AND a.city = d.city
+            )
         """), {"year": year, "province": province})
         rows = [dict(row._mapping) for row in result]
     return jsonify(rows)
 
+
 @app.route('/api/accidents')
 def api_accidents():
-    year = request.args.get('year')
+    year = parse_year()
     province = request.args.get('province')
     city = request.args.get('city')
+
+    if not province or not city:
+        abort(400, description="'province' and 'city' parameters are required")
+
     with engine.connect() as conn:
         result = conn.execute(text("""
-            SELECT ST_Y(geom) AS lat,
-                   ST_X(geom) AS lng,
+            SELECT id, lat, lng,
                    to_char(datetime, 'YYYY-MM-DD') AS date,
                    CONCAT(type_desc, ' - ', law_violation) AS desc,
                    type_major
@@ -67,6 +88,7 @@ def api_accidents():
         """), {"year": year, "province": province, "city": city})
         rows = [dict(row._mapping) for row in result]
     return jsonify(rows)
+
 
 if __name__ == '__main__':
     app.run(debug=True)
