@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>교통사고 시각화</title>
+  
+  <!-- Leaflet 기본 -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+  <!-- MarkerCluster 추가 -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
+  <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+
+  <!-- 프로젝트 고유 자원 -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/map.css') }}">
+  <script defer src="{{ url_for('static', filename='js/map.js') }}"></script>
+</head>
+
+<body>
+  <div id="filter-panel">
+    <div class="filter-content">
+      <div class="filter-header">
+        <h2>🚗 교통사고 분석</h2>
+        <p>조건을 선택하여 데이터를 필터링하세요</p>
+      </div>
+
+      <!-- 시간 필터 -->
+      <div class="filter-section collapsible">
+        <h3>📅 시간 조건 <span class="toggle-icon">▼</span></h3>
+        <div class="filter-group">
+          <label class="filter-label">날짜 범위 </label>
+          <div class="range-container">
+            <input type="date" id="startDate">
+            <span>~</span>
+            <input type="date" id="endDate">
+          </div>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">주야 구분 </label>
+          <div class="checkbox-group">
+            <div class="checkbox-item">
+              <input type="checkbox" id="day" checked>
+              <label for="day">주간</label>
+            </div>
+            <div class="checkbox-item">
+              <input type="checkbox" id="night" checked>
+              <label for="night">야간</label>
+            </div>
+          </div>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">요일</label>
+          <div class="checkbox-group" id="dayOfWeek_group">
+            <div class="checkbox-item"><input type="checkbox" value="월" id="dow_mon" checked><label
+                for="dow_mon">월</label></div>
+            <div class="checkbox-item"><input type="checkbox" value="화" id="dow_tue" checked><label
+                for="dow_tue">화</label></div>
+            <div class="checkbox-item"><input type="checkbox" value="수" id="dow_wed" checked><label
+                for="dow_wed">수</label></div>
+            <div class="checkbox-item"><input type="checkbox" value="목" id="dow_thu" checked><label
+                for="dow_thu">목</label></div>
+            <div class="checkbox-item"><input type="checkbox" value="금" id="dow_fri" checked><label
+                for="dow_fri">금</label></div>
+            <div class="checkbox-item"><input type="checkbox" value="토" id="dow_sat" checked><label
+                for="dow_sat">토</label></div>
+            <div class="checkbox-item"><input type="checkbox" value="일" id="dow_sun" checked><label
+                for="dow_sun">일</label></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 사고 유형 필터 -->
+      <div class="filter-section collapsible">
+        <h3>🚧 사고 유형 <span class="toggle-icon">▼</span></h3>
+        <div class="filter-group">
+          <label class="filter-label">대분류</label>
+          <div class="checkbox-group" id="type_major_group"></div>
+
+          <label class="filter-label">소분류</label>
+          <div class="checkbox-group" id="type_minor_group"></div>
+        </div>
+      </div>
+
+      <!-- 도로 조건 -->
+      <div class="filter-section collapsible">
+        <h3>🛣️ 도로 조건 <span class="toggle-icon">▼</span></h3>
+        <div class="checkbox-group" id="road_group"></div>
+      </div>
+
+      <!-- 차량 유형 -->
+      <div class="filter-section collapsible">
+        <h3>👥 차량 유형 <span class="toggle-icon">▼</span></h3>
+
+        <div class="filter-group">
+          <label class="filter-label">가해자 차량</label>
+          <div class="checkbox-group" id="offender_group"></div>
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-label">피해자 차량</label>
+          <div class="checkbox-group" id="victim_group"></div>
+        </div>
+      </div>
+
+      <!-- 법규 위반 -->
+      <div class="filter-section collapsible">
+        <h3>⚖️ 법규 위반 <span class="toggle-icon">▼</span></h3>
+        <div class="filter-group">
+          <label class="filter-label">위반 유형</label>
+          <div class="checkbox-group" id="violation_group"></div>
+        </div>
+      </div>
+
+
+      <!-- 버튼 -->
+      <div class="filter-actions">
+        <button class="btn btn-primary" id="applyFilters">필터 적용</button>
+        <button class="btn btn-secondary" id="resetFilters">초기화</button>
+      </div>
+
+      <!-- 통계 -->
+      <div class="stats-summary">
+        <span class="stats-number" id="filteredCount">1,234</span>
+        <span class="stats-label">필터링된 사고 건수</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="map-container">
+    <button id="toggle-panel">◀</button>
+    <div id="loading-indicator">데이터 로딩 중...</div>
+
+    <div class="map-controls">
+      <div class="view-mode-group">
+        <label>
+          <input type="radio" name="viewMode" id="mode-filter" value="filter">
+          <span>필터링 결과 보기</span>
+        </label>
+        <label>
+          <input type="radio" name="viewMode" id="mode-year" value="year" checked>
+          <span>연도별 전체 보기</span>
+        </label>
+      </div>
+      <div id="yearSelectContainer" style="display: none; margin-top: 8px;">
+        <label for="yearSelect">📅 연도 선택:</label>
+        <select id="yearSelect"></select>
+      </div>
+    </div>
+
+    <div id="visibleRegionInfo">
+      표시 중인 지역: 전체
+    </div>
+
+    <div id="map"></div>
+  </div>
+</body>
+
+</html>
