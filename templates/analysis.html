@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>전체 연도 교통사고 분석</title>
+  <style>
+    body { font-family: sans-serif; margin: 0; padding: 20px; background: #f4f4f4; }
+    .container { max-width: 800px; margin: auto; }
+    h1 { text-align: center; margin-bottom: 24px; }
+    .controls { text-align: center; margin-bottom: 20px; }
+    .controls select { padding: 8px 12px; font-size: 1rem; border: 1px solid #ccc; border-radius: 4px; }
+    .results { background: white; padding: 16px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .results h2 { margin: 0 0 12px; font-size: 1.2rem; color: #333; text-align: center; }
+    .results ul { list-style: none; padding: 0; margin: 0; }
+    .results li { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 1rem; }
+    .results li:last-child { border-bottom: none; }
+    .label { flex: 1; }
+    .percent { width: 60px; text-align: right; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>전체 연도 교통사고 분석</h1>
+    <div class="controls">
+      <label for="categorySelect">카테고리 선택:</label>
+      <select id="categorySelect">
+        <option value="시간대">시간대</option>
+        <option value="요일">요일</option>
+        <option value="사고유형">사고유형</option>
+        <option value="발생지시군">발생지시군</option>
+        <option value="법규위반">법규위반</option>
+        <option value="도로형태">도로형태</option>
+        <option value="가해자종별">가해자종별</option>
+      </select>
+    </div>
+    <div class="results" id="results">
+      <h2>카테고리를 선택하세요</h2>
+      <ul></ul>
+    </div>
+  </div>
+
+  <script>
+    // 요일 영문→한글 매핑
+    const dayMap = {
+      Sunday: '일요일',
+      Monday: '월요일',
+      Tuesday: '화요일',
+      Wednesday: '수요일',
+      Thursday: '목요일',
+      Friday: '금요일',
+      Saturday: '토요일'
+    };
+
+    let analysisData = {};
+
+    async function fetchAnalysis() {
+      const res = await fetch('/api/analysis');
+      analysisData = await res.json();
+    }
+
+    function renderCategory(category) {
+      let data = analysisData[category] || [];
+      // '요일' 카테고리는 한글로 변환
+      if (category === '요일') {
+        data = data.map(item => ({
+          label: dayMap[item.label] || item.label,
+          percentage: item.percentage
+        }));
+      }
+      const results = document.getElementById('results');
+      results.querySelector('h2').textContent = `${category}별 사고 비율 (상위 ${data.length}개)`;
+      const ul = results.querySelector('ul');
+      ul.innerHTML = '';
+      data.forEach(item => {
+        const li = document.createElement('li');
+        const spanLabel = document.createElement('span');
+        spanLabel.className = 'label';
+        spanLabel.textContent = item.label;
+        const spanPercent = document.createElement('span');
+        spanPercent.className = 'percent';
+        spanPercent.textContent = `${item.percentage}%`;
+        li.appendChild(spanLabel);
+        li.appendChild(spanPercent);
+        ul.appendChild(li);
+      });
+    }
+
+    document.getElementById('categorySelect').addEventListener('change', e => {
+      renderCategory(e.target.value);
+    });
+
+    // 초기화
+    (async function() {
+      await fetchAnalysis();
+      renderCategory(document.getElementById('categorySelect').value);
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8"/>
+    <title>사고 목록</title>
+    <style>
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        form { margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <h1>사고 목록</h1>
+    <form method="get" action="{{ url_for('accidents_page') }}">
+        <select name="filter_by">
+            <option value="" {% if not filter_by %}selected{% endif %}>--검색 기준--</option>
+            <option value="dateyear" {% if filter_by=='dateyear' %}selected{% endif %}>년도</option>
+            <option value="datetime" {% if filter_by=='datetime' %}selected{% endif %}>일시</option>
+            <option value="province" {% if filter_by=='province' %}selected{% endif %}>시도</option>
+            <option value="city" {% if filter_by=='city' %}selected{% endif %}>시군</option>
+            <option value="type_major" {% if filter_by=='type_major' %}selected{% endif %}>사고유형</option>
+            <option value="type_minor" {% if filter_by=='type_minor' %}selected{% endif %}>세부유형</option>
+            <option value="law_violation" {% if filter_by=='law_violation' %}selected{% endif %}>위반법규</option>
+        </select>
+        <input type="text" name="search_value" placeholder="검색어" value="{{ search_value|e }}"/>
+        <button type="submit">검색</button>
+    </form>
+
+    <table>
+        <thead>
+            <tr>
+                <th>id</th>
+                <th>년도</th>
+                <th>일시</th>
+                <th>시도</th>
+                <th>시군</th>
+                <th>사고유형</th>
+                <th>세부유형</th>
+                <th>위반법규</th>
+                <th>위도</th>
+                <th>경도</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for a in accidents %}
+            <tr>
+                <td>{{ a.id }}</td>
+                <td>{{ a.dateyear }}</td>
+                <td>{{ a.datetime }}</td>
+                <td>{{ a.province }}</td>
+                <td>{{ a.city }}</td>
+                <td>{{ a.type_major }}</td>
+                <td>{{ a.type_minor }}</td>
+                <td>{{ a.law_violation }}</td>
+                <td>{{ a.lat }}</td>
+                <td>{{ a.lng }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="10">검색 결과가 없습니다.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
