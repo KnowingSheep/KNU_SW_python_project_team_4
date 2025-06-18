@@ -1,193 +1,192 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
-  <meta charset="UTF-8" />
-  <title>교통사고 시각화</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/map.css') }}">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>교통사고 분석 시스템</title>
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
 </head>
+
 <body>
-  <div id="filter-panel">
-    <div class="filter-content">
-      <div class="filter-header">
-        <h2>🚗 교통사고 분석</h2>
-        <p>조건을 선택하여 데이터를 필터링하세요</p>
-      </div>
-
-      <!-- 시간 필터 -->
-      <div class="filter-section">
-        <h3>📅 시간 조건</h3>
-        <div class="filter-group">
-          <label class="filter-label">주야 구분</label>
-          <div class="checkbox-group">
-            <div class="checkbox-item">
-              <input type="checkbox" id="day" checked>
-              <label for="day">주간</label>
-            </div>
-            <div class="checkbox-item">
-              <input type="checkbox" id="night" checked>
-              <label for="night">야간</label>
-            </div>
-          </div>
-        </div>
-        <div class="filter-group">
-          <label class="filter-label">요일</label>
-          <select class="filter-select" id="dayOfWeek">
-            <option value="">전체</option>
-            <option value="월">월요일</option>
-            <option value="화">화요일</option>
-            <option value="수">수요일</option>
-            <option value="목">목요일</option>
-            <option value="금">금요일</option>
-            <option value="토">토요일</option>
-            <option value="일">일요일</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- 사고 유형 필터 -->
-      <div class="filter-section">
-        <h3>🚧 사고 유형</h3>
-        <div class="filter-group">
-          <label class="filter-label">대분류</label>
-          <div class="checkbox-group">
-            <div class="checkbox-item">
-              <input type="checkbox" id="car-car" checked>
-              <label for="car-car">차대차</label>
-            </div>
-            <div class="checkbox-item">
-              <input type="checkbox" id="car-single" checked>
-              <label for="car-single">차량단독</label>
-            </div>
-            <div class="checkbox-item">
-              <input type="checkbox" id="car-person" checked>
-              <label for="car-person">차대사람</label>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 심각도 필터 -->
-      <div class="filter-section">
-        <h3>⚠️ 사고 심각도</h3>
-        <div class="severity-grid">
-          <div class="severity-item active" data-type="death">
-            <span class="severity-icon">💀</span>
-            <span class="severity-label">사망사고</span>
-          </div>
-          <div class="severity-item active" data-type="serious">
-            <span class="severity-icon">🚑</span>
-            <span class="severity-label">중상사고</span>
-          </div>
-          <div class="severity-item active" data-type="minor">
-            <span class="severity-icon">🏥</span>
-            <span class="severity-label">경상사고</span>
-          </div>
-          <div class="severity-item active" data-type="injury">
-            <span class="severity-icon">🩹</span>
-            <span class="severity-label">부상신고</span>
-          </div>
-        </div>
-        
-        <div class="filter-group" style="margin-top: 16px;">
-          <label class="filter-label">사상자 수 범위</label>
-          <div class="range-container">
-            <input type="number" class="range-input" placeholder="최소" min="0" id="minCasualties">
-            <span>~</span>
-            <input type="number" class="range-input" placeholder="최대" min="0" id="maxCasualties">
-          </div>
-        </div>
-      </div>
-
-      <!-- 도로 조건 필터 -->
-      <div class="filter-section">
-        <h3>🛣️ 도로 조건</h3>
-        <div class="filter-group">
-          <label class="filter-label">도로 형태</label>
-          <select class="filter-select" id="roadType">
-            <option value="">전체</option>
-            <option value="단일로">단일로</option>
-            <option value="교차로">교차로</option>
-            <option value="고속도로">고속도로</option>
-            <option value="터널">터널</option>
-            <option value="교량">교량</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- 당사자 필터 -->
-      <div class="filter-section">
-        <h3>👥 당사자 유형</h3>
-        <div class="filter-group">
-          <label class="filter-label">가해자 차량</label>
-          <select class="filter-select" id="perpetratorType">
-            <option value="">전체</option>
-            <option value="승용차">승용차</option>
-            <option value="화물차">화물차</option>
-            <option value="승합차">승합차</option>
-            <option value="이륜차">이륜차</option>
-            <option value="자전거">자전거</option>
-            <option value="보행자">보행자</option>
-          </select>
-        </div>
-        <div class="filter-group">
-          <label class="filter-label">피해자 유형</label>
-          <select class="filter-select" id="victimType">
-            <option value="">전체</option>
-            <option value="승용차">승용차</option>
-            <option value="화물차">화물차</option>
-            <option value="승합차">승합차</option>
-            <option value="이륜차">이륜차</option>
-            <option value="자전거">자전거</option>
-            <option value="보행자">보행자</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- 법규위반 필터 -->
-      <div class="filter-section">
-        <h3>⚖️ 법규 위반</h3>
-        <div class="filter-group">
-          <label class="filter-label">위반 유형</label>
-          <select class="filter-select" id="violationType">
-            <option value="">전체</option>
-            <option value="안전운전 의무 불이행">안전운전 의무 불이행</option>
-            <option value="신호위반">신호위반</option>
-            <option value="중앙선침범">중앙선침범</option>
-            <option value="속도위반">속도위반</option>
-            <option value="기타">기타</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- 액션 버튼 -->
-      <div class="filter-actions">
-        <button class="btn btn-primary" id="applyFilters">필터 적용</button>
-        <button class="btn btn-secondary" id="resetFilters">초기화</button>
-      </div>
-
-      <!-- 통계 요약 -->
-      <div class="stats-summary">
-        <span class="stats-number" id="filteredCount">1,234</span>
-        <span class="stats-label">필터링된 사고 건수</span>
-      </div>
-    </div>
+  <div class="background-pattern"></div>
+  <div class="floating-shapes">
+    <div class="shape shape-1"></div>
+    <div class="shape shape-2"></div>
   </div>
 
-  <div id="map-container">
-    <button id="toggle-panel">◀</button>
-    <div id="loading-indicator">
-      데이터 로딩 중...
-    </div>
-    <div class="map-controls">
-      <label for="yearSelect">📅 년도 선택:</label>
-      <select id="yearSelect">
-      </select>
-    </div>
-    <div id="map"></div>
+  <div class="container">
+    <nav class="nav-bar">
+      <div class="nav-logo">
+        <div class="nav-icon">TS</div>
+        <div class="nav-title">Traffic Safety</div>
+      </div>
+      <div class="nav-badge">v0.1</div>
+    </nav>
+
+    <section class="hero-section">
+      <h1 class="hero-title">교통사고 분석 시스템</h1>
+      <p class="hero-subtitle">
+        데이터 분석으로 교통사고를 예방하고<br>
+        더 안전한 도로 환경을 만들어갑니다
+      </p>
+
+      <div class="stats-bar">
+        <div class="stat-item">
+          <span class="stat-number" id="top-year">-</span>
+          <span class="stat-label">최다 발생 연도</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number" id="top-weekday">-</span>
+          <span class="stat-label">사고 최다 요일</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number" id="top-province">-</span>
+          <span class="stat-label">사고 최다 지역</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="menu-section">
+      <div class="menu-card map-card" onclick="navigateToMap()">
+        <div class="card-header">
+          <div class="card-icon">🗺️</div>
+          <h2 class="card-title">사고 지도 분석</h2>
+        </div>
+        <p class="card-description">
+          실시간 교통사고 데이터를 지도에 시각화하여 사고 다발 지역과
+          위험 구간을 한눈에 파악할 수 있습니다.
+        </p>
+        <div class="card-features">
+          <span class="feature-tag">연도별</span>
+          <span class="feature-tag">조건별</span>
+          <span class="feature-tag">로드뷰</span>
+        </div>
+      </div>
+
+      <div class="menu-card stats-card" onclick="navigateToStats()">
+        <div class="card-header">
+          <div class="card-icon">📊</div>
+          <h2 class="card-title">통계 대시보드</h2>
+        </div>
+        <p class="card-description">
+          다양한 차트와 그래프로 교통사고 패턴을 분석하고
+          인사이트를 도출하여 예방 대책을 수립할 수 있습니다.
+        </p>
+        <div class="card-features">
+          <span class="feature-tag">트렌드 분석</span>
+          <span class="feature-tag">리포트 생성</span>
+        </div>
+      </div>
+      <div class="menu-card table-card" onclick="navigateToTable()">
+        <div class="card-header">
+          <div class="card-icon">📄</div>
+          <h2 class="card-title">데이터 조회</h2>
+        </div>
+        <p class="card-description">
+          교통사고 데이터를 표 형식으로 확인하고<br>
+          다양한 기준으로 검색할 수 있습니다.
+        </p>
+        <div class="card-features">
+          <span class="feature-tag">표 보기</span>
+          <span class="feature-tag">검색</span>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <p>© 2025 Traffic Accidents Analasys and Visualization</p>
+      <p>파이썬 기반 빅데이터 분석 기초 기말 프로젝트 4조</p>
+    </footer>
   </div>
 
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="{{ url_for('static', filename='js/map.js') }}"></script>
+  <script>
+    function navigateToMap() {
+      window.location.href = '/map';
+    }
+
+    function navigateToStats() {
+      window.location.href = '/stats';
+    }
+
+    function navigateToTable() {
+      window.location.href = '/table';
+    }
+
+    // 스크롤 애니메이션
+    const observerOptions = {
+      threshold: 0.1,
+      rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.opacity = '1';
+          entry.target.style.transform = 'translateY(0)';
+        }
+      });
+    }, observerOptions);
+
+    document.querySelectorAll('.menu-card').forEach(card => {
+      observer.observe(card);
+    });
+
+    // 통계 카운터 애니메이션
+    function animateCounter(element, target) {
+      let current = 0;
+      const increment = target / 50;
+      const timer = setInterval(() => {
+        current += increment;
+        if (current >= target) {
+          current = target;
+          clearInterval(timer);
+        }
+
+        if (target.toString().includes('.')) {
+          element.textContent = current.toFixed(1) + '%';
+        } else {
+          element.textContent = Math.floor(current).toLocaleString();
+        }
+      }, 20);
+    }
+
+    function animateCounter(element, target, suffix = '') {
+      let current = 0;
+      const isNumber = typeof target === 'number';
+      const increment = isNumber ? target / 50 : 1;
+
+      const timer = setInterval(() => {
+        current += increment;
+        if (isNumber && current >= target) {
+          current = target;
+          clearInterval(timer);
+        } else if (!isNumber) {
+          clearInterval(timer);
+        }
+
+        element.textContent = isNumber
+          ? Math.floor(current).toLocaleString() + suffix
+          : target;
+      }, 20);
+    }
+
+    async function loadLiveStats() {
+      try {
+        const res = await fetch('/api/stats/summary');
+        const data = await res.json();
+
+        animateCounter(document.getElementById("top-year"), data.year);
+        animateCounter(document.getElementById("top-weekday"), data.top_weekday);
+        animateCounter(document.getElementById("top-province"), data.top_province);
+      } catch (err) {
+        console.error("통계 로딩 실패:", err);
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", loadLiveStats);
+  </script>
 </body>
+
 </html>

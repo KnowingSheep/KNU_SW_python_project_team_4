@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>로드뷰</title>
+  <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=9f21d9925624021ec7b7d9cd40f6f769&libraries=services"></script>
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; }
+    #roadview { width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+  <div id="roadview"></div>
+  <script>
+    const lat = parseFloat(new URLSearchParams(location.search).get("lat"));
+    const lng = parseFloat(new URLSearchParams(location.search).get("lng"));
+
+    const position = new kakao.maps.LatLng(lat, lng);
+    const roadview = new kakao.maps.Roadview(document.getElementById("roadview"));
+    const roadviewClient = new kakao.maps.RoadviewClient();
+
+    roadviewClient.getNearestPanoId(position, 50, panoId => {
+      if (panoId) {
+        roadview.setPanoId(panoId, position);
+      } else {
+        document.body.innerHTML = "<p style='text-align:center'>로드뷰 없음</p>";
+      }
+    });
+  </script>
+</body>
+</html>

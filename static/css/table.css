@@ -1,0 +1,165 @@
+body {
+    margin: 0;
+    font-family: 'Noto Sans KR', sans-serif;
+    background-color: #f5f7fa;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 24px;
+    color: #2f3542;
+}
+
+.filter-form {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 24px;
+    background: #fff;
+    padding: 16px 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.filter-form label {
+    font-weight: bold;
+    margin-right: 6px;
+}
+
+.filter-form select,
+.filter-form input[type="text"] {
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.filter-form button {
+    background-color: #2f80ed;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.filter-form button:hover {
+    background-color: #1c60b3;
+}
+
+.data-table {
+    overflow-x: auto;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: auto;
+    /* ← auto로 변경 */
+    min-width: 1300px;
+    /* 너무 좁아지는 거 방지 */
+}
+
+td,
+th {
+    padding: 12px 10px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+    font-size: 14px;
+    white-space: nowrap;
+    /* 열이 한 줄에 유지되게 */
+}
+
+td.long-text {
+    max-width: 240px;
+    white-space: normal;
+    word-break: break-word;
+}
+
+th {
+    background-color: #f0f2f5;
+    color: #2f3542;
+}
+
+tbody tr:hover {
+    background-color: #f9fbfd;
+}
+
+.no-result {
+    text-align: center;
+    padding: 24px;
+    color: #888;
+}
+
+#home-button {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    width: 52px;
+    height: 52px;
+    background: white;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 24px;
+    cursor: pointer;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+#home-button:hover {
+    background: linear-gradient(135deg, #3c5fe0, #1f3cae);
+    transform: scale(1.05);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    margin: 30px 0 60px;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.page-btn {
+    display: inline-block;
+    padding: 8px 12px;
+    background: #ffffff;
+    color: #333;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.page-btn:hover {
+    background: #2f80ed;
+    color: white;
+    border-color: #2f80ed;
+}
+
+.page-btn.active {
+    background: #2f80ed;
+    color: white;
+    font-weight: bold;
+    pointer-events: none;
+}
+
+.page-dots {
+    display: inline-block;
+    padding: 8px 10px;
+    color: #aaa;
+    font-size: 14px;
+}

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>교통사고 데이터 조회</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/table.css') }}">
+</head>
+
+<body>
+    <button id="home-button" title="메인 페이지로 이동" onclick="window.location.href='/'">
+        🏠
+    </button>
+    <div class="container">
+        <h1>📋 교통사고 목록 분석</h1>
+
+        <form method="get" action="{{ url_for('table_page') }}" class="filter-form">
+            <label for="filter_by">검색 기준</label>
+            <select name="filter_by" id="filter_by">
+                <option value="" {% if not filter_by %}selected{% endif %}>--선택--</option>
+                <option value="dateyear" {% if filter_by=='dateyear' %}selected{% endif %}>년도</option>
+                <option value="datetime" {% if filter_by=='datetime' %}selected{% endif %}>일시</option>
+                <option value="province" {% if filter_by=='province' %}selected{% endif %}>시도</option>
+                <option value="city" {% if filter_by=='city' %}selected{% endif %}>시군구</option>
+                <option value="type_major" {% if filter_by=='type_major' %}selected{% endif %}>사고유형</option>
+                <option value="type_minor" {% if filter_by=='type_minor' %}selected{% endif %}>세부유형</option>
+                <option value="law_violation" {% if filter_by=='law_violation' %}selected{% endif %}>위반법규</option>
+            </select>
+
+            <input type="text" name="search_value" placeholder="검색어 입력" value="{{ search_value|e }}" />
+
+            <button type="submit">검색</button>
+        </form>
+
+        <div class="data-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>년도</th>
+                        <th>일시</th>
+                        <th>사망자</th>
+                        <th>부상자</th>
+                        <th>중상자</th>
+                        <th>경상자</th>
+                        <th>신고부상자</th>
+                        <th>시도</th>
+                        <th>시군구</th>
+                        <th>사고유형</th>
+                        <th>세부유형</th>
+                        <th>설명</th>
+                        <th>위반법규</th>
+                        <th>도로명</th>
+                        <th>도로상세</th>
+                        <th>가해자 차종</th>
+                        <th>피해자 차종</th>
+                        <th>위도</th>
+                        <th>경도</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in accidents %}
+                    <tr>
+                        <td>{{ a.id }}</td>
+                        <td>{{ a.dateyear }}</td>
+                        <td>{{ a.datetime }}</td>
+                        <td>{{ a.deaths }}</td>
+                        <td>{{ a.injured }}</td>
+                        <td>{{ a.severe_injuries }}</td>
+                        <td>{{ a.mild_injuries }}</td>
+                        <td>{{ a.report_injuries }}</td>
+                        <td>{{ a.province }}</td>
+                        <td>{{ a.city }}</td>
+                        <td>{{ a.type_major }}</td>
+                        <td>{{ a.type_minor }}</td>
+                        <td class="long-text">{{ a.type_desc }}</td>
+                        <td>{{ a.law_violation }}</td>
+                        <td>{{ a.road_major }}</td>
+                        <td class="long-text">{{ a.road_detail }}</td>
+                        <td>{{ a.offender_type }}</td>
+                        <td>{{ a.victim_type }}</td>
+                        <td>{{ a.lat }}</td>
+                        <td>{{ a.lng }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="20" class="no-result">🚫 검색 결과가 없습니다.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="pagination">
+        {% set page_window = 2 %}
+        {% set start_page = [page - page_window, 1]|max %}
+        {% set end_page = [page + page_window, total_pages]|min %}
+
+        {% if start_page > 1 %}
+        <a class="page-btn"
+            href="{{ url_for('table_page', page=1, filter_by=filter_by, search_value=search_value) }}">1</a>
+        {% if start_page > 2 %}
+        <span class="page-dots">...</span>
+        {% endif %}
+        {% endif %}
+
+        {% for p in range(start_page, end_page + 1) %}
+        {% if p == page %}
+        <strong class="page-btn active">{{ p }}</strong>
+        {% else %}
+        <a class="page-btn"
+            href="{{ url_for('table_page', page=p, filter_by=filter_by, search_value=search_value) }}">{{ p }}</a>
+        {% endif %}
+        {% endfor %}
+
+        {% if end_page < total_pages %} {% if end_page < total_pages - 1 %} <span class="page-dots">...</span>
+            {% endif %}
+            <a class="page-btn"
+                href="{{ url_for('table_page', page=total_pages, filter_by=filter_by, search_value=search_value) }}">{{
+                total_pages }}</a>
+            {% endif %}
+    </div>
+</body>
+
+</html>
