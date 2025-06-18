@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>교통사고 분석</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #fafafa;
+            color: #1a1a1a;
+            line-height: 1.5;
+        }
+
+        .nav {
+            background: #fff;
+            padding: 1rem 0;
+            border-bottom: 1px solid #e5e5e5;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: #666;
+            text-decoration: none;
+            font-weight: 400;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover, .nav-links a.active {
+            color: #1a1a1a;
+        }
+
+        .main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+
+        .header {
+            margin-bottom: 3rem;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1rem;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .metric {
+            background: #fff;
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid #e5e5e5;
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 0.25rem;
+        }
+
+        .metric-label {
+            color: #666;
+            font-size: 0.875rem;
+        }
+
+        .metric-change {
+            font-size: 0.75rem;
+            margin-top: 0.5rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            display: inline-block;
+        }
+
+        .metric-change.positive {
+            background: #f0f9f0;
+            color: #166534;
+        }
+
+        .metric-change.negative {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+
+        .charts {
+            display: grid;
+            gap: 2rem;
+            grid-template-columns: 2fr 1fr;
+            margin-bottom: 2rem;
+        }
+
+        .chart-wide {
+            grid-column: 1 / -1;
+        }
+
+        .chart {
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid #e5e5e5;
+            padding: 1.5rem;
+        }
+
+        .chart h3 {
+            font-size: 1rem;
+            font-weight: 500;
+            color: #1a1a1a;
+            margin-bottom: 1.5rem;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 280px;
+        }
+
+        .chart-container.small {
+            height: 200px;
+        }
+
+        .additional-charts {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 1024px) {
+            .charts {
+                grid-template-columns: 1fr;
+            }
+            
+            .additional-charts {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-inner {
+                padding: 0 1rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .main {
+                padding: 2rem 1rem;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .metrics {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* Chart styling overrides */
+        .chart canvas {
+            font-family: 'Inter', sans-serif !important;
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <div class="nav-inner">
+            <div class="logo">교통사고 분석</div>
+            <ul class="nav-links">
+                <li><a href="#" class="active">대시보드</a></li>
+                <li><a href="#">지도</a></li>
+                <li><a href="#">지역별</a></li>
+                <li><a href="#">설정</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="main">
+        <div class="header">
+            <h1>사고 현황</h1>
+            <p>최근 데이터 기준 실시간 분석</p>
+        </div>
+
+        <div class="metrics">
+            <div class="metric">
+                <div class="metric-value">1,247</div>
+                <div class="metric-label">총 사고</div>
+                <div class="metric-change negative">-8% 감소</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value">89</div>
+                <div class="metric-label">이번 주</div>
+                <div class="metric-change positive">+12% 증가</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value">12</div>
+                <div class="metric-label">중대 사고</div>
+                <div class="metric-change negative">-3 감소</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value">4.2</div>
+                <div class="metric-label">평균 심각도</div>
+                <div class="metric-change positive">개선됨</div>
+            </div>
+        </div>
+
+        <div class="charts">
+            <div class="chart">
+                <h3>시간대별 사고 발생</h3>
+                <div class="chart-container">
+                    <canvas id="hourChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart">
+                <h3>요일별 분포</h3>
+                <div class="chart-container small">
+                    <canvas id="weekChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="additional-charts">
+            <div class="chart">
+                <h3>지역별 현황</h3>
+                <div class="chart-container small">
+                    <canvas id="regionChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart">
+                <h3>월별 추이</h3>
+                <div class="chart-container small">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        Chart.defaults.font.family = 'Inter';
+        Chart.defaults.font.size = 12;
+        Chart.defaults.color = '#666';
+        Chart.defaults.borderColor = '#e5e5e5';
+
+        // 시간대별 차트
+        new Chart(document.getElementById('hourChart'), {
+            type: 'line',
+            data: {
+                labels: Array.from({length: 24}, (_, i) => i + '시'),
+                datasets: [{
+                    data: [3, 2, 1, 1, 2, 4, 8, 15, 12, 8, 6, 5, 7, 9, 11, 16, 18, 14, 10, 8, 6, 5, 4, 3],
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    pointHoverRadius: 4,
+                    pointBackgroundColor: '#3b82f6'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        border: { display: false }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: '#f5f5f5' },
+                        border: { display: false }
+                    }
+                }
+            }
+        });
+
+        // 요일별 차트
+        new Chart(document.getElementById('weekChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['월', '화', '수', '목', '금', '토', '일'],
+                datasets: [{
+                    data: [30, 25, 20, 22, 35, 40, 38],
+                    backgroundColor: [
+                        '#ef4444', '#f97316', '#eab308', 
+                        '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 15,
+                            usePointStyle: true,
+                            pointStyle: 'circle'
+                        }
+                    }
+                }
+            }
+        });
+
+        // 지역별 차트
+        new Chart(document.getElementById('regionChart'), {
+            type: 'bar',
+            data: {
+                labels: ['서울', '부산', '대구', '인천', '광주'],
+                datasets: [{
+                    data: [120, 85, 65, 70, 45],
+                    backgroundColor: '#f3f4f6',
+                    borderColor: '#d1d5db',
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        border: { display: false }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: '#f5f5f5' },
+                        border: { display: false }
+                    }
+                }
+            }
+        });
+
+        // 월별 추이 차트
+        new Chart(document.getElementById('trendChart'), {
+            type: 'line',
+            data: {
+                labels: ['1월', '2월', '3월', '4월', '5월', '6월'],
+                datasets: [{
+                    data: [65, 59, 80, 81, 56, 72],
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 3,
+                    pointBackgroundColor: '#10b981'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        border: { display: false }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: '#f5f5f5' },
+                        border: { display: false }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
