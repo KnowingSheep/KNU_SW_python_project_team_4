@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traffic Analysis Hub</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0a0a;
+            color: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .cyber-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .neon-glow {
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(0, 255, 255, 0.05) 0%, transparent 70%);
+            animation: pulse 4s ease-in-out infinite alternate;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.3; transform: scale(1); }
+            100% { opacity: 0.1; transform: scale(1.1); }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 3rem;
+            padding: 1.5rem 0;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #00ffff, #0080ff);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #000;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+        }
+
+        .brand {
+            font-size: 1.75rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #00ffff, #ffffff);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .status {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(0, 255, 0, 0.1);
+            border: 1px solid rgba(0, 255, 0, 0.3);
+            border-radius: 20px;
+            font-size: 0.875rem;
+            color: #00ff00;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #00ff00;
+            border-radius: 50%;
+            animation: blink 2s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.3; }
+        }
+
+        .hero {
+            text-align: center;
+            margin: 4rem 0;
+        }
+
+        .hero-title {
+            font-size: 4rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #ffffff, #00ffff, #0080ff);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1.1;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        .hero-subtitle {
+            font-size: 1.25rem;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 2rem;
+            font-weight: 300;
+        }
+
+        .data-stream {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin: 2rem 0;
+            padding: 1.5rem;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .stream-item {
+            text-align: center;
+        }
+
+        .stream-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #00ffff;
+            display: block;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+
+        .stream-label {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 0.25rem;
+        }
+
+        .modules {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+            margin: 4rem 0;
+        }
+
+        .module {
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 20px;
+            padding: 2.5rem;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+            backdrop-filter: blur(20px);
+            overflow: hidden;
+        }
+
+        .module::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00ffff, transparent);
+            transform: translateX(-100%);
+            transition: transform 0.6s ease;
+        }
+
+        .module:hover::before {
+            transform: translateX(100%);
+        }
+
+        .module:hover {
+            transform: translateY(-10px);
+            border-color: #00ffff;
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.3),
+                0 0 30px rgba(0, 255, 255, 0.2);
+        }
+
+        .module-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .module-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .map-module .module-icon {
+            background: linear-gradient(135deg, rgba(255, 0, 150, 0.2), rgba(0, 255, 255, 0.2));
+            border: 1px solid rgba(255, 0, 150, 0.5);
+            color: #ff0096;
+        }
+
+        .stats-module .module-icon {
+            background: linear-gradient(135deg, rgba(0, 255, 0, 0.2), rgba(0, 255, 255, 0.2));
+            border: 1px solid rgba(0, 255, 0, 0.5);
+            color: #00ff00;
+        }
+
+        .module:hover .module-icon {
+            transform: rotateY(180deg);
+            box-shadow: 0 0 20px currentColor;
+        }
+
+        .module-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .module-id {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.5);
+            font-family: 'Courier New', monospace;
+        }
+
+        .module-description {
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        .module-stats {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat {
+            flex: 1;
+            padding: 0.75rem;
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #00ffff;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.6);
+            text-transform: uppercase;
+        }
+
+        .access-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            background: transparent;
+            border: 1px solid #00ffff;
+            border-radius: 8px;
+            color: #00ffff;
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .access-btn:hover {
+            background: #00ffff;
+            color: #000;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 4rem;
+            padding: 2rem 0;
+            border-top: 1px solid rgba(0, 255, 255, 0.2);
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.875rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .hero-title {
+                font-size: 2.5rem;
+            }
+            
+            .modules {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+            
+            .data-stream {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .header {
+                flex-direction: column;
+                gap: 1rem;
+            }
+        }
+
+        .glitch {
+            animation: glitch 2s infinite;
+        }
+
+        @keyframes glitch {
+            0%, 90%, 100% { transform: translate(0); }
+            20% { transform: translate(-1px, 1px); }
+            40% { transform: translate(-1px, -1px); }
+            60% { transform: translate(1px, 1px); }
+            80% { transform: translate(1px, -1px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="cyber-grid"></div>
+    <div class="neon-glow"></div>
+
+    <div class="container">
+        <header class="header">
+            <div class="logo-section">
+                <div class="logo">TA</div>
+                <div class="brand">Traffic Nexus</div>
+            </div>
+            <div class="status">
+                <div class="status-dot"></div>
+                SYSTEM ONLINE
+            </div>
+        </header>
+
+        <section class="hero">
+            <h1 class="hero-title glitch">Neural Traffic Analysis</h1>
+            <p class="hero-subtitle">
+                Advanced AI-Driven Traffic Incident Prediction & Analysis Platform
+            </p>
+            
+            <div class="data-stream">
+                <div class="stream-item">
+                    <span class="stream-value" id="incidents">0</span>
+                    <span class="stream-label">Active Incidents</span>
+                </div>
+                <div class="stream-item">
+                    <span class="stream-value" id="accuracy">0.0%</span>
+                    <span class="stream-label">AI Accuracy</span>
+                </div>
+                <div class="stream-item">
+                    <span class="stream-value" id="zones">0</span>
+                    <span class="stream-label">Risk Zones</span>
+                </div>
+                <div class="stream-item">
+                    <span class="stream-value" id="uptime">99.9%</span>
+                    <span class="stream-label">System Uptime</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="modules">
+            <div class="module map-module" onclick="accessMap()">
+                <div class="module-header">
+                    <div class="module-icon">🌐</div>
+                    <div>
+                        <div class="module-title">Geo Intelligence</div>
+                        <div class="module-id">MODULE_001</div>
+                    </div>
+                </div>
+                <p class="module-description">
+                    Real-time geospatial analysis of traffic incidents with predictive modeling 
+                    and heat-map visualization for critical zone identification.
+                </p>
+                <div class="module-stats">
+                    <div class="stat">
+                        <div class="stat-value">847</div>
+                        <div class="stat-label">Hotspots</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">12.3s</div>
+                        <div class="stat-label">Avg Response</div>
+                    </div>
+                </div>
+                <button class="access-btn">
+                    <span>ACCESS MODULE</span>
+                    <span>→</span>
+                </button>
+            </div>
+
+            <div class="module stats-module" onclick="accessStats()">
+                <div class="module-header">
+                    <div class="module-icon">📡</div>
+                    <div>
+                        <div class="module-title">Data Analytics</div>
+                        <div class="module-id">MODULE_002</div>
+                    </div>
+                </div>
+                <p class="module-description">
+                    Comprehensive statistical analysis with machine learning algorithms 
+                    for pattern recognition and trend forecasting.
+                </p>
+                <div class="module-stats">
+                    <div class="stat">
+                        <div class="stat-value">2.4TB</div>
+                        <div class="stat-label">Data Processed</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">156</div>
+                        <div class="stat-label">Models Active</div>
+                    </div>
+                </div>
+                <button class="access-btn">
+                    <span>ACCESS MODULE</span>
+                    <span>→</span>
+                </button>
+            </div>
+        </section>
+
+        <footer class="footer">
+            <p>TRAFFIC NEXUS © 2025 | NEURAL NETWORK TRAFFIC ANALYSIS SYSTEM | CLASSIFIED</p>
+        </footer>
+    </div>
+
+    <script>
+        function accessMap() {
+            console.log('Accessing Geo Intelligence Module...');
+            alert('🌐 Geo Intelligence Module에 접속합니다...');
+            // window.location.href = '/map';
+        }
+
+        function accessStats() {
+            console.log('Accessing Data Analytics Module...');
+            alert('📡 Data Analytics Module에 접속합니다...');
+            // window.location.href = '/stats';
+        }
+
+        // 데이터 스트림 애니메이션
+        function animateValue(element, start, end, duration, suffix = '') {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                const value = Math.floor(progress * (end - start) + start);
+                element.textContent = value + suffix;
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        // 초기 로딩 애니메이션
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                animateValue(document.getElementById('incidents'), 0, 23, 2000);
+                animateValue(document.getElementById('accuracy'), 0, 97.8, 2500, '%');
+                animateValue(document.getElementById('zones'), 0, 8, 1500);
+            }, 500);
+
+            // 글리치 효과 랜덤 적용
+            setInterval(() => {
+                const elements = document.querySelectorAll('.hero-title');
+                elements.forEach(el => {
+                    if (Math.random() < 0.1) {
+                        el.classList.add('glitch');
+                        setTimeout(() => el.classList.remove('glitch'), 500);
+                    }
+                });
+            }, 3000);
+
+            // 데이터 실시간 업데이트 시뮬레이션
+            setInterval(() => {
+                const incidents = document.getElementById('incidents');
+                const currentValue = parseInt(incidents.textContent);
+                const newValue = currentValue + Math.floor(Math.random() * 3) - 1;
+                if (newValue >= 0) {
+                    incidents.textContent = newValue;
+                }
+            }, 5000);
+        });
+
+        // 마우스 움직임에 따른 네온 글로우 효과
+        document.addEventListener('mousemove', (e) => {
+            const glow = document.querySelector('.neon-glow');
+            const x = (e.clientX / window.innerWidth) * 100;
+            const y = (e.clientY / window.innerHeight) * 100;
+            glow.style.background = `radial-gradient(circle at ${x}% ${y}%, rgba(0, 255, 255, 0.08) 0%, transparent 70%)`;
+        });
+    </script>
+</body>
+</html>
