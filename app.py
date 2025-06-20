@@ -9,11 +9,16 @@ engine = create_engine(DB_URL)
 
 @app.route('/')
 def homepage():
-    return render_template('index.html')  # 나중에 새로 만든 메인
+    return render_template('index.html')
 
 @app.route('/map')
 def map_page():
     return render_template('map.html')
+
+@app.route("/roadview")
+def roadview():
+    kakao_key = "PUT-API-KEY"  # 카카오 개발자 JavaScript API키 입력
+    return render_template("roadview.html", kakao_key=kakao_key)
 
 @app.route('/stats')
 def stats_page():
@@ -404,10 +409,6 @@ def get_accident_detail(accident_id):
             return jsonify({"error": "not found"}), 404
         
         return jsonify(dict(row._mapping))
-
-@app.route('/roadview')
-def roadview():
-    return render_template('roadview.html')
 
 
 @app.route('/api/stats/summary')

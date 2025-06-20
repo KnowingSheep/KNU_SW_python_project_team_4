@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>교통사고 분석 시스템</title>
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+</head>
+
+<body>
+  <div class="background-pattern"></div>
+  <div class="floating-shapes">
+    <div class="shape shape-1"></div>
+    <div class="shape shape-2"></div>
+  </div>
+
+  <div class="container">
+    <nav class="nav-bar">
+      <div class="nav-logo">
+        <div class="nav-icon">TS</div>
+        <div class="nav-title">Traffic Safety</div>
+      </div>
+      <div class="nav-badge">v0.1</div>
+    </nav>
+
+    <section class="hero-section">
+      <h1 class="hero-title">교통사고 분석 시스템</h1>
+      <p class="hero-subtitle">
+        데이터 분석으로 교통사고를 예방하고<br>
+        더 안전한 도로 환경을 만들어갑니다
+      </p>
+
+      <div class="stats-bar">
+        <div class="stat-item">
+          <span class="stat-number" id="top-year">-</span>
+          <span class="stat-label">최다 발생 연도</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number" id="top-weekday">-</span>
+          <span class="stat-label">사고 최다 요일</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number" id="top-province">-</span>
+          <span class="stat-label">사고 최다 지역</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="menu-section">
+      <div class="menu-card map-card" onclick="navigateToMap()">
+        <div class="card-header">
+          <div class="card-icon">🗺️</div>
+          <h2 class="card-title">사고 지도 분석</h2>
+        </div>
+        <p class="card-description">
+          실시간 교통사고 데이터를 지도에 시각화하여 사고 다발 지역과
+          위험 구간을 한눈에 파악할 수 있습니다.
+        </p>
+        <div class="card-features">
+          <span class="feature-tag">연도별</span>
+          <span class="feature-tag">조건별</span>
+          <span class="feature-tag">로드뷰</span>
+        </div>
+      </div>
+
+      <div class="menu-card stats-card" onclick="navigateToStats()">
+        <div class="card-header">
+          <div class="card-icon">📊</div>
+          <h2 class="card-title">통계 대시보드</h2>
+        </div>
+        <p class="card-description">
+          다양한 차트와 그래프로 교통사고 패턴을 분석하고
+          인사이트를 도출하여 예방 대책을 수립할 수 있습니다.
+        </p>
+        <div class="card-features">
+          <span class="feature-tag">트렌드 분석</span>
+          <span class="feature-tag">리포트 생성</span>
+        </div>
+      </div>
+      <div class="menu-card table-card" onclick="navigateToTable()">
+        <div class="card-header">
+          <div class="card-icon">📄</div>
+          <h2 class="card-title">데이터 조회</h2>
+        </div>
+        <p class="card-description">
+          교통사고 데이터를 표 형식으로 확인하고<br>
+          다양한 기준으로 검색할 수 있습니다.
+        </p>
+        <div class="card-features">
+          <span class="feature-tag">표 보기</span>
+          <span class="feature-tag">검색</span>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <p>© 2025 Traffic Accidents Analasys and Visualization</p>
+      <p>파이썬 기반 빅데이터 분석 기초 기말 프로젝트 4조</p>
+    </footer>
+  </div>
+
+  <script>
+    function navigateToMap() {
+      window.location.href = '/map';
+    }
+
+    function navigateToStats() {
+      window.location.href = '/stats';
+    }
+
+    function navigateToTable() {
+      window.location.href = '/table';
+    }
+
+    // 스크롤 애니메이션
+    const observerOptions = {
+      threshold: 0.1,
+      rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.opacity = '1';
+          entry.target.style.transform = 'translateY(0)';
+        }
+      });
+    }, observerOptions);
+
+    document.querySelectorAll('.menu-card').forEach(card => {
+      observer.observe(card);
+    });
+
+    // 통계 카운터 애니메이션
+    function animateCounter(element, target) {
+      let current = 0;
+      const increment = target / 50;
+      const timer = setInterval(() => {
+        current += increment;
+        if (current >= target) {
+          current = target;
+          clearInterval(timer);
+        }
+
+        if (target.toString().includes('.')) {
+          element.textContent = current.toFixed(1) + '%';
+        } else {
+          element.textContent = Math.floor(current).toLocaleString();
+        }
+      }, 20);
+    }
+
+    function animateCounter(element, target, suffix = '') {
+      let current = 0;
+      const isNumber = typeof target === 'number';
+      const increment = isNumber ? target / 50 : 1;
+
+      const timer = setInterval(() => {
+        current += increment;
+        if (isNumber && current >= target) {
+          current = target;
+          clearInterval(timer);
+        } else if (!isNumber) {
+          clearInterval(timer);
+        }
+
+        element.textContent = isNumber
+          ? Math.floor(current).toLocaleString() + suffix
+          : target;
+      }, 20);
+    }
+
+    async function loadLiveStats() {
+      try {
+        const res = await fetch('/api/stats/summary');
+        const data = await res.json();
+
+        animateCounter(document.getElementById("top-year"), data.year);
+        animateCounter(document.getElementById("top-weekday"), data.top_weekday);
+        animateCounter(document.getElementById("top-province"), data.top_province);
+      } catch (err) {
+        console.error("통계 로딩 실패:", err);
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", loadLiveStats);
+  </script>
+</body>
+
+</html>
