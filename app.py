@@ -17,7 +17,7 @@ def map_page():
 
 @app.route("/roadview")
 def roadview():
-    kakao_key = "PUT-API-KEY"  # 카카오 개발자 JavaScript API키 입력
+    kakao_key = "9f21d9925624021ec7b7d9cd40f6f769"  # 카카오 개발자 JavaScript API키 입력
     return render_template("roadview.html", kakao_key=kakao_key)
 
 @app.route('/stats')
